@@ -22,7 +22,8 @@ int main(int argc, char const *argv[])
     Camera cam;
 
     cam.m_aspect_ratio = 16.0 / 9.0;
-    cam.m_image_width = 1280;
+    cam.m_image_width = 400;
+    cam.m_samples_per_pixel = 100;
 
     cam.render(world);
 }

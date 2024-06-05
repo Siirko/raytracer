@@ -1,6 +1,7 @@
 #pragma once
 
 #include "utils.hpp"
+#include <algorithm>
 
 class Interval
 {
@@ -12,8 +13,9 @@ class Interval
     double size() const { return max - min; }
     bool contains(double x) const { return min <= x && x <= max; }
     bool surrounds(double x) const { return min < x && x < max; }
+    double clamp(double x) const { return std::clamp(x, min, max); }
     static const Interval empty, universe;
 };
 
-const Interval Interval::empty = Interval(+utils::infinity, -utils::infinity);
-const Interval Interval::universe = Interval(-utils::infinity, +utils::infinity);
+// const Interval Interval::empty = Interval(+utils::infinity, -utils::infinity);
+// const Interval Interval::universe = Interval(-utils::infinity, +utils::infinity);

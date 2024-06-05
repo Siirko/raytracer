@@ -16,6 +16,8 @@ void Camera::init()
     image_height = int(m_image_width / m_aspect_ratio);
     image_height = (image_height < 1) ? 1 : image_height;
 
+    pixel_samples_scale = 1.0 / m_samples_per_pixel;
+
     center = Point3(0, 0, 0);
 
     // Determine viewport dimensions.
@@ -36,6 +38,19 @@ void Camera::init()
     pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 }
 
+Ray Camera::get_ray(int i, int j) const
+{
+
+    auto offset = sample_square();
+    auto pixel_sample = pixel00_loc + ((i + offset.x()) * pixel_delta_u) + ((j + offset.y()) * pixel_delta_v);
+
+    auto ray_origin = center;
+    auto ray_direction = pixel_sample - ray_origin;
+    return Ray(ray_origin, ray_direction);
+}
+
+Vec3 Camera::sample_square() const { return Vec3(utils::random_double() - .5, utils::random_double() - .5, 0); }
+
 void Camera::render(const Hittable &world)
 {
     init();
@@ -47,12 +62,13 @@ void Camera::render(const Hittable &world)
         std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
         for (int i = 0; i < m_image_width; i++)
         {
-            auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
-            auto ray_direction = pixel_center - center;
-            Ray r(center, ray_direction);
-
-            Color pixel_color = ray_color(r, world);
-            pixel_color.write_color(std::cout);
+            Color pixel_color(0, 0, 0);
+            for (int s = 0; s < m_samples_per_pixel; s++)
+            {
+                Ray r = get_ray(i, j);
+                pixel_color += ray_color(r, world);
+            }
+            Color::write_color(std::cout, pixel_color * pixel_samples_scale);
         }
     }
 
