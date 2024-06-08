@@ -1,5 +1,5 @@
 CC := clang++
-CFLAGS ?= -Wall -g -std=c++20
+CFLAGS ?= -Wall -std=c++20 -O3
 LDLIBS ?= -lm
 
 EXEC = ray-tracer

@@ -103,13 +103,13 @@ inline Vec3 random_in_unit_sphere()
     // https://math.stackexchange.com/questions/1585975/how-to-generate-random-points-on-a-sphere
     auto p = Vec3::random_gaussian(-1, 1);
     return p;
+}
 
-    // Vec3 p;
-    // do
-    // {
-    //     p = Vec3::random_gaussian(-1, 1);
-    // } while (p.length_squared() >= 1);
-    // return p;
+inline Vec3 random_in_unit_disk()
+{
+    auto p = Vec3::random_gaussian(-1, 1);
+    p[2] = 0;
+    return p;
 }
 
 inline Vec3 random_unit_vector() { return unit_vector(random_in_unit_sphere()); }
