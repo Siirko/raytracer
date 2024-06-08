@@ -1,10 +1,16 @@
 #include "camera.hpp"
 
-Color Camera::ray_color(const Ray &r, const Hittable &world)
+Color Camera::ray_color(const Ray &r, int depth, const Hittable &world)
 {
+    if (depth <= 0)
+        return Color(0, 0, 0);
+
     hit_record_t rec;
-    if (world.hit(r, Interval(0, utils::infinity), rec))
-        return 0.5 * (rec.normal + Color(1, 1, 1));
+    if (world.hit(r, Interval(0.001, utils::infinity), rec))
+    {
+        Vec3 direction = random_on_hemisphere(rec.normal);
+        return 0.5 * ray_color(Ray(rec.p, direction), depth - 1, world);
+    }
 
     Vec3 unit_direction = unit_vector(r.direction());
     auto a = 0.5 * (unit_direction.y() + 1.0);
@@ -67,7 +73,7 @@ void Camera::render(const Hittable &world)
             for (int s = 0; s < m_samples_per_pixel; s++)
             {
                 Ray r = get_ray(i, j);
-                pixel_color += ray_color(r, world);
+                pixel_color += ray_color(r, m_max_depth, world);
             }
             Color::write_color(std::cout, pixel_color * pixel_samples_scale);
         }

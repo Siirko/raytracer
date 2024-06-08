@@ -17,7 +17,7 @@ class Camera
 
     Ray get_ray(int i, int j) const;
     Vec3 sample_square() const;
-    Color ray_color(const Ray &r, const Hittable &world);
+    Color ray_color(const Ray &r, int depth, const Hittable &world);
 
     void init();
 
@@ -25,6 +25,7 @@ class Camera
     double m_aspect_ratio = 16.0 / 9.0;
     int m_image_width = 1280;
     int m_samples_per_pixel = 10; // Count of random samples for each pixel
+    int m_max_depth = 10;         // Maximum depth of ray recursion
 
     void render(const Hittable &world);
 };

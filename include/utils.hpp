@@ -14,4 +14,11 @@ inline double random_double(double min = 0.0, double max = 1.0)
     static std::mt19937 generator;
     return distribution(generator);
 }
+
+inline double random_gaussian(double min = 0.0, double max = 1.0)
+{
+    static std::normal_distribution<double> distribution(0.0, 1.0);
+    static std::mt19937 generator;
+    return distribution(generator);
+}
 } // namespace utils
