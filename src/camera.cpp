@@ -8,7 +8,7 @@ Color Camera::ray_color(const Ray &r, int depth, const Hittable &world)
     hit_record_t rec;
     if (world.hit(r, Interval(0.001, utils::infinity), rec))
     {
-        Vec3 direction = random_on_hemisphere(rec.normal);
+        Vec3 direction = rec.normal + random_unit_vector();
         return 0.5 * ray_color(Ray(rec.p, direction), depth - 1, world);
     }
 
