@@ -58,6 +58,13 @@ class Vec3
                     utils::random_gaussian(min, max));
     }
 
+    bool near_zero() const
+    {
+        // Return true if the vector is close to zero in all dimensions.
+        const auto s = 1e-8;
+        return (std::fabs(e[0]) < s) && (std::fabs(e[1]) < s) && (std::fabs(e[2]) < s);
+    }
+
     operator Color() const;
 };
 
@@ -115,3 +122,5 @@ inline Vec3 random_on_hemisphere(const Vec3 &normal)
     else
         return -in_unit_sphere;
 }
+
+inline Vec3 reflect(const Vec3 &v, const Vec3 &n) { return v - 2 * dot(v, n) * n; }

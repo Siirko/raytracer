@@ -5,10 +5,12 @@
 #include <memory>
 #include <vector>
 
+class Material;
 struct hit_record_t
 {
     Point3 p;
     Vec3 normal;
+    std::shared_ptr<Material> mat;
     double t;
     bool front_face;
     void set_face_normal(const Ray &r, const Vec3 &outward_normal)

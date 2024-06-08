@@ -1,4 +1,5 @@
 #include "camera.hpp"
+#include "material.hpp"
 
 Color Camera::ray_color(const Ray &r, int depth, const Hittable &world)
 {
@@ -8,8 +9,13 @@ Color Camera::ray_color(const Ray &r, int depth, const Hittable &world)
     hit_record_t rec;
     if (world.hit(r, Interval(0.001, utils::infinity), rec))
     {
-        Vec3 direction = rec.normal + random_unit_vector();
-        return 0.5 * ray_color(Ray(rec.p, direction), depth - 1, world);
+        Ray scattered;
+        Color attenuation;
+        if (rec.mat->scatter(r, rec, attenuation, scattered))
+            return attenuation * ray_color(scattered, depth - 1, world);
+        return Color(0, 0, 0);
+        // Vec3 direction = rec.normal + random_unit_vector();
+        // return 0.5 * ray_color(Ray(rec.p, direction), depth - 1, world);
     }
 
     Vec3 unit_direction = unit_vector(r.direction());
