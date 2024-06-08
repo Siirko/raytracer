@@ -8,6 +8,7 @@ Color Camera::ray_color(const Ray &r, const Hittable &world)
 
     Vec3 unit_direction = unit_vector(r.direction());
     auto a = 0.5 * (unit_direction.y() + 1.0);
+    // blendedValue = (1−a) * startValue + a * endValue
     return (1.0 - a) * Color(1.0, 1.0, 1.0) + a * Color(0.5, 0.7, 1.0);
 }
 
