@@ -1,5 +1,9 @@
 #include "camera.hpp"
 #include "material.hpp"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <future>
+#include <mutex>
+#include <stb_image_write.h>
 
 Color Camera::ray_color(const Ray &r, int depth, const Hittable &world)
 {
@@ -14,8 +18,6 @@ Color Camera::ray_color(const Ray &r, int depth, const Hittable &world)
         if (rec.mat->scatter(r, rec, attenuation, scattered))
             return attenuation * ray_color(scattered, depth - 1, world);
         return Color(0, 0, 0);
-        // Vec3 direction = rec.normal + random_unit_vector();
-        // return 0.5 * ray_color(Ray(rec.p, direction), depth - 1, world);
     }
 
     Vec3 unit_direction = unit_vector(r.direction());
@@ -64,16 +66,12 @@ Ray Camera::get_ray(int i, int j) const
 
 Vec3 Camera::sample_square() const { return Vec3(utils::random_double() - .5, utils::random_double() - .5, 0); }
 
-void Camera::render(const Hittable &world)
+void Camera::render_block(std::mutex &mtx, const task_t::block &b, const Hittable &world,
+                          std::vector<unsigned char> &image_data, int channels)
 {
-    init();
-
-    std::cout << "P3\n" << m_image_width << ' ' << image_height << "\n255\n";
-
-    for (int j = 0; j < image_height; j++)
+    for (int j = b.y0; j < b.y1; j++)
     {
-        std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
-        for (int i = 0; i < m_image_width; i++)
+        for (int i = b.x0; i < b.x1; i++)
         {
             Color pixel_color(0, 0, 0);
             for (int s = 0; s < m_samples_per_pixel; s++)
@@ -81,9 +79,61 @@ void Camera::render(const Hittable &world)
                 Ray r = get_ray(i, j);
                 pixel_color += ray_color(r, m_max_depth, world);
             }
-            Color::write_color(std::cout, pixel_color * pixel_samples_scale);
+            auto c = Color::prepare_color(pixel_color * pixel_samples_scale);
+            int index = (j * m_image_width + i) * channels;
+            mtx.lock();
+            image_data[index] = c.x();
+            image_data[index + 1] = c.y();
+            image_data[index + 2] = c.z();
+            mtx.unlock();
         }
+    }
+}
+
+std::vector<Camera::task_t::block> Camera::create_tasks(int width, int height, int block_size)
+{
+    std::vector<task_t::block> blocks;
+    for (int j = 0; j < height; j += block_size)
+    {
+        for (int i = 0; i < width; i += block_size)
+        {
+            task_t::block b;
+            b.x0 = i;
+            b.y0 = j;
+            b.x1 = std::min(i + block_size, width);
+            b.y1 = std::min(j + block_size, height);
+            blocks.push_back(b);
+        }
+    }
+    return blocks;
+}
+void Camera::render(const Hittable &world)
+{
+    init();
+
+    std::mutex mtx = std::mutex();
+
+    // According to image dimension (w*h) do blocks for threads
+    int block_size = 128;
+    std::vector<task_t::block> blocks = create_tasks(m_image_width, image_height, block_size);
+
+    // Image dimensions and parameters
+    const int channels = 3;
+    std::vector<unsigned char> image_data(m_image_width * image_height * channels);
+    std::vector<std::future<void>> futures;
+    for (auto &s : blocks)
+    {
+        futures.push_back(std::async(std::launch::async, &Camera::render_block, this, std::ref(mtx), s, std::ref(world),
+                                     std::ref(image_data), channels));
+    }
+
+    while (!futures.empty())
+    {
+        std::clog << "\rBlocks remaining: " << futures.size() << ' ' << std::flush;
+        futures.back().get();
+        futures.pop_back();
     }
 
     std::clog << "\rDone.                 \n";
+    stbi_write_png("image.png", m_image_width, image_height, channels, image_data.data(), m_image_width * channels);
 }

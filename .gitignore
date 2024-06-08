@@ -5,3 +5,4 @@ vgcore.*
 build/
 test/test.log
 docs/
+image.png

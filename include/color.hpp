@@ -16,7 +16,7 @@ class Color : public Vec3
 
         return 0;
     }
-    static void write_color(std::ostream &out, const Color &pixel_color)
+    static Color prepare_color(const Color &pixel_color)
     {
         auto r = pixel_color.x();
         auto g = pixel_color.y();
@@ -32,7 +32,6 @@ class Color : public Vec3
         int gbyte = int(256 * intensity.clamp(g));
         int bbyte = int(256 * intensity.clamp(b));
 
-        // Write out the pixel color components.
-        out << rbyte << ' ' << gbyte << ' ' << bbyte << '\n';
+        return Color(rbyte, gbyte, bbyte);
     }
 };
