@@ -6,8 +6,24 @@
 #include <cmath>
 #include <iostream>
 
+class Camera;
+struct Task
+{
+
+  public:
+    struct block
+    {
+        int x0, y0, x1, y1;
+    };
+
+    void render_block(std::mutex &mtx, const block &b, const Hittable &world, std::vector<unsigned char> &image_data,
+                      int channels, const Camera &cam);
+};
+
 class Camera
 {
+    friend struct Task;
+
   private:
     int m_image_height;              // Rendered image height
     Point3 m_center;                 // Camera center
@@ -20,21 +36,10 @@ class Camera
 
     Ray get_ray(int i, int j) const;
     Vec3 sample_square() const;
-    Color ray_color(const Ray &r, int depth, const Hittable &world);
+    Color ray_color(const Ray &r, int depth, const Hittable &world) const;
     Point3 dof_disk_sample() const;
 
-    struct task_t
-    {
-        struct block
-        {
-            int x0, y0, x1, y1;
-        } first, second;
-    };
-
-    std::vector<task_t::block> create_tasks(int width, int height, int block_size);
-    void render_block(std::mutex &mtx, const task_t::block &b, const Hittable &world,
-                      std::vector<unsigned char> &image_data, int channels);
-
+    std::vector<Task::block> create_tasks(int width, int height, int block_size);
     void init();
 
   public:
