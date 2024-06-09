@@ -82,11 +82,12 @@ Ray Camera::get_ray(int i, int j) const
 
 Vec3 Camera::sample_square() const { return Vec3(utils::random_double() - .5, utils::random_double() - .5, 0); }
 
-void Task::render_block(std::mutex &mtx, const Task::block &b, const Hittable &world,
-                        std::vector<unsigned char> &image_data, int channels, const Camera &cam)
+void Task::render_block(const Task::block &b, const Hittable &world, std::vector<unsigned char> &image_data,
+                        int channels, const Camera &cam)
 {
     for (int j = b.y0; j < b.y1; j++)
     {
+        // progress[thread_id] = int(100 * (j - b.y0) / (b.y1 - b.y0));
         for (int i = b.x0; i < b.x1; i++)
         {
             Color pixel_color(0, 0, 0);
@@ -97,11 +98,9 @@ void Task::render_block(std::mutex &mtx, const Task::block &b, const Hittable &w
             }
             auto c = Color::prepare_color(pixel_color * cam.m_pixel_samples_scale);
             int index = (j * cam.m_image_width + i) * channels;
-            mtx.lock();
             image_data[index] = c.x();
             image_data[index + 1] = c.y();
             image_data[index + 2] = c.z();
-            mtx.unlock();
         }
     }
 }
@@ -127,19 +126,17 @@ void Camera::render(const Hittable &world)
 {
     init();
 
-    std::mutex mtx = std::mutex();
-
     // According to image dimension (w*h) do blocks for threads
     int block_size = 128;
     std::vector<Task::block> blocks = create_tasks(m_image_width, m_image_height, block_size);
-
     // Image dimensions and parameters
     const int channels = 3;
     std::vector<unsigned char> image_data(m_image_width * m_image_height * channels);
     std::vector<std::future<void>> futures;
     for (auto &s : blocks)
-        futures.push_back(std::async(std::launch::async, &Task::render_block, Task(), std::ref(mtx), s, std::ref(world),
+        futures.push_back(std::async(std::launch::async, &Task::render_block, Task(), s, std::ref(world),
                                      std::ref(image_data), channels, std::ref(*this)));
+
     while (!futures.empty())
     {
         std::clog << "\rBlocks remaining: " << futures.size() << ' ' << std::flush;

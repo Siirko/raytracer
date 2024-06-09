@@ -1,5 +1,5 @@
 CC := clang++
-CFLAGS ?= -Wall -std=c++20 -O3 -march=native
+CFLAGS ?= -Wall -std=c++20 -O3 -march=native -fno-math-errno -fno-trapping-math
 LDLIBS ?= -lm
 
 EXEC = ray-tracer

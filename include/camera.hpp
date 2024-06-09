@@ -16,8 +16,8 @@ struct Task
         int x0, y0, x1, y1;
     };
 
-    void render_block(std::mutex &mtx, const block &b, const Hittable &world, std::vector<unsigned char> &image_data,
-                      int channels, const Camera &cam);
+    void render_block(const block &b, const Hittable &world, std::vector<unsigned char> &image_data, int channels,
+                      const Camera &cam);
 };
 
 class Camera
