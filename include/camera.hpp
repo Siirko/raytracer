@@ -9,14 +9,14 @@
 class Camera
 {
   private:
-    int image_height;            // Rendered image height
-    Point3 center;               // Camera center
-    Point3 pixel00_loc;          // Location of pixel 0, 0
-    Vec3 pixel_delta_u;          // Offset to pixel to the right
-    Vec3 pixel_delta_v;          // Offset to pixel below
-    double pixel_samples_scale;  // Color scale factor for a sum of pixel samples
-    Vec3 u, v, w;                // Camera basis vectors
-    Vec3 dof_disk_u, dof_disk_v; // DoF disk horizontal and vertical vectors
+    int m_image_height;              // Rendered image height
+    Point3 m_center;                 // Camera center
+    Point3 m_pixel00_loc;            // Location of pixel 0, 0
+    Vec3 m_pixel_delta_u;            // Offset to pixel to the right
+    Vec3 m_pixel_delta_v;            // Offset to pixel below
+    double m_pixel_samples_scale;    // Color scale factor for a sum of pixel samples
+    Vec3 m_u, m_v, m_w;              // Camera basis vectors
+    Vec3 m_dof_disk_u, m_dof_disk_v; // DoF disk horizontal and vertical vectors
 
     Ray get_ray(int i, int j) const;
     Vec3 sample_square() const;

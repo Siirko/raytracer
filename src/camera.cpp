@@ -28,54 +28,54 @@ Color Camera::ray_color(const Ray &r, int depth, const Hittable &world)
 
 void Camera::init()
 {
-    image_height = int(m_image_width / m_aspect_ratio);
-    image_height = (image_height < 1) ? 1 : image_height;
+    m_image_height = int(m_image_width / m_aspect_ratio);
+    m_image_height = (m_image_height < 1) ? 1 : m_image_height;
 
-    pixel_samples_scale = 1.0 / m_samples_per_pixel;
+    m_pixel_samples_scale = 1.0 / m_samples_per_pixel;
 
-    center = m_lookfrom;
+    m_center = m_lookfrom;
 
     // Determine viewport dimensions.
     auto theta = utils::degrees_to_radians(m_vfov);
     auto h = std::tan(theta / 2);
     auto viewport_height = 2.0 * h * m_focus_dist;
-    auto viewport_width = viewport_height * (double(m_image_width) / image_height);
+    auto viewport_width = viewport_height * (double(m_image_width) / m_image_height);
 
     // Calculate the camera basis vectors
-    w = unit_vector(m_lookfrom - m_lookat);
-    u = unit_vector(cross(m_vup, w));
-    v = cross(w, u);
+    m_w = unit_vector(m_lookfrom - m_lookat);
+    m_u = unit_vector(cross(m_vup, m_w));
+    m_v = cross(m_w, m_u);
     // Calculate the vectors across the horizontal and down the vertical viewport edges.
-    auto viewport_u = viewport_width * u;
-    auto viewport_v = viewport_height * -v;
+    auto viewport_u = viewport_width * m_u;
+    auto viewport_v = viewport_height * -m_v;
 
     // Calculate the horizontal and vertical delta vectors from pixel to pixel.
-    pixel_delta_u = viewport_u / m_image_width;
-    pixel_delta_v = viewport_v / image_height;
+    m_pixel_delta_u = viewport_u / m_image_width;
+    m_pixel_delta_v = viewport_v / m_image_height;
 
     // Calculate the location of the upper left pixel.
-    auto viewport_upper_left = center - (m_focus_dist * w) - viewport_u / 2 - viewport_v / 2;
-    pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+    auto viewport_upper_left = m_center - (m_focus_dist * m_w) - viewport_u / 2 - viewport_v / 2;
+    m_pixel00_loc = viewport_upper_left + 0.5 * (m_pixel_delta_u + m_pixel_delta_v);
 
     auto dof_radius = m_focus_dist * std::tan(utils::degrees_to_radians(m_dof_angle) / 2);
-    dof_disk_u = dof_radius * u;
-    dof_disk_v = dof_radius * v;
+    m_dof_disk_u = dof_radius * m_u;
+    m_dof_disk_v = dof_radius * m_v;
 }
 
 Point3 Camera::dof_disk_sample() const
 {
     // Returns a random point in the camera defocus disk.
     auto p = random_in_unit_disk();
-    return center + (p[0] * dof_disk_u) + (p[1] * dof_disk_v);
+    return m_center + (p[0] * m_dof_disk_u) + (p[1] * m_dof_disk_v);
 }
 
 Ray Camera::get_ray(int i, int j) const
 {
 
     auto offset = sample_square();
-    auto pixel_sample = pixel00_loc + ((i + offset.x()) * pixel_delta_u) + ((j + offset.y()) * pixel_delta_v);
+    auto pixel_sample = m_pixel00_loc + ((i + offset.x()) * m_pixel_delta_u) + ((j + offset.y()) * m_pixel_delta_v);
 
-    auto ray_origin = (m_dof_angle <= 0) ? center : dof_disk_sample();
+    auto ray_origin = (m_dof_angle <= 0) ? m_center : dof_disk_sample();
     auto ray_direction = pixel_sample - ray_origin;
     return Ray(ray_origin, ray_direction);
 }
@@ -95,7 +95,7 @@ void Camera::render_block(std::mutex &mtx, const task_t::block &b, const Hittabl
                 Ray r = get_ray(i, j);
                 pixel_color += ray_color(r, m_max_depth, world);
             }
-            auto c = Color::prepare_color(pixel_color * pixel_samples_scale);
+            auto c = Color::prepare_color(pixel_color * m_pixel_samples_scale);
             int index = (j * m_image_width + i) * channels;
             mtx.lock();
             image_data[index] = c.x();
@@ -131,18 +131,15 @@ void Camera::render(const Hittable &world)
 
     // According to image dimension (w*h) do blocks for threads
     int block_size = 128;
-    std::vector<task_t::block> blocks = create_tasks(m_image_width, image_height, block_size);
+    std::vector<task_t::block> blocks = create_tasks(m_image_width, m_image_height, block_size);
 
     // Image dimensions and parameters
     const int channels = 3;
-    std::vector<unsigned char> image_data(m_image_width * image_height * channels);
+    std::vector<unsigned char> image_data(m_image_width * m_image_height * channels);
     std::vector<std::future<void>> futures;
     for (auto &s : blocks)
-    {
-        // need to check if deferred is better than async
-        futures.push_back(std::async(std::launch::deferred, &Camera::render_block, this, std::ref(mtx), s,
-                                     std::ref(world), std::ref(image_data), channels));
-    }
+        futures.push_back(std::async(std::launch::async, &Camera::render_block, this, std::ref(mtx), s, std::ref(world),
+                                     std::ref(image_data), channels));
 
     while (!futures.empty())
     {
@@ -152,5 +149,5 @@ void Camera::render(const Hittable &world)
     }
 
     std::clog << "\rDone.                 \n";
-    stbi_write_png("image.png", m_image_width, image_height, channels, image_data.data(), m_image_width * channels);
+    stbi_write_png("image.png", m_image_width, m_image_height, channels, image_data.data(), m_image_width * channels);
 }
